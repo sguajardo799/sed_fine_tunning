@@ -173,7 +173,7 @@ import io
 import itertools
 
 class StreamingPaSSTDataset(IterableDataset):
-    def __init__(self, hf_dataset, repo_id, token=None, channel='front', sr=32000, duration=10.0, time_resolution=0.0):
+    def __init__(self, hf_dataset, repo_id, token=None, channel='front', sr=32000, duration=10.0, time_resolution=0.0, max_samples=None):
         self.hf_dataset = hf_dataset
         self.repo_id = repo_id
         self.token = token
@@ -181,6 +181,7 @@ class StreamingPaSSTDataset(IterableDataset):
         self.sr = sr
         self.duration = duration
         self.time_resolution = time_resolution
+        self.max_samples = max_samples
         
         # We need classes to map to indices. 
         # Since we are streaming, we might not know all classes upfront unless provided.
@@ -218,8 +219,12 @@ class StreamingPaSSTDataset(IterableDataset):
         # We assume the dataset is sorted by audio_filename!
         
         iterator = iter(self.hf_dataset)
+        grouped_iterator = itertools.groupby(iterator, key=lambda x: x['audio_filename'])
         
-        for filename, group in itertools.groupby(iterator, key=lambda x: x['audio_filename']):
+        if self.max_samples is not None:
+            grouped_iterator = itertools.islice(grouped_iterator, self.max_samples)
+        
+        for filename, group in grouped_iterator:
             rows = list(group)
             if not rows:
                 continue

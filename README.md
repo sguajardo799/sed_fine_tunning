@@ -44,6 +44,8 @@ python main.py --data_dir data --csv_train data/global_train_hartf.csv --csv_val
 - `--batch_size`: Batch size.
 - `--lr`: Learning rate.
 - `--device`: Device to use (e.g., `cuda:0`, `cpu`).
+- `--model`: Model architecture to use. Choices: `passt` (default), `crnn`.
+- `--no_pretrained`: Disable pre-trained weights (train from scratch).
 - `--test`: Run a quick test with limited data.
 
 ## Evaluation
@@ -115,4 +117,5 @@ This will stream the data directly from the Hub, eliminating the need for local 
 - `--hf_dataset`: Hugging Face Dataset ID.
 - `--streaming`: Enable streaming mode (required for large datasets to avoid download).
 - `--token`: Hugging Face token (required for private datasets or higher rate limits).
+- `--limit`: Limit the number of samples for the streaming dataset (useful for testing).
 

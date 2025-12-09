@@ -28,6 +28,8 @@ def main():
     parser.add_argument("--no_pretrained", action="store_false", dest="pretrained", help="Do not use pre-trained weights")
     parser.set_defaults(pretrained=True)
     
+    parser.add_argument("--limit", type=int, default=None, help="Limit number of samples for streaming dataset")
+    
     args = parser.parse_args()
     
     if args.device:
@@ -66,14 +68,16 @@ def main():
                 repo_id=args.hf_dataset,
                 token=args.token,
                 channel=args.channel, 
-                time_resolution=time_res
+                time_resolution=time_res,
+                max_samples=args.limit
             )
             val_dataset = StreamingPaSSTDataset(
                 hf_dataset=hf_ds['validation'], 
                 repo_id=args.hf_dataset,
                 token=args.token,
                 channel=args.channel, 
-                time_resolution=time_res
+                time_resolution=time_res,
+                max_samples=args.limit
             )
             
             # For streaming, we can't easily get len() or classes upfront unless we scan or hardcode.
