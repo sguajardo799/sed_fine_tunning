@@ -215,16 +215,22 @@ class StreamingPaSSTDataset(IterableDataset):
         self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
 
     def __iter__(self):
+        print("Starting StreamingPaSSTDataset iteration...")
         # Group by audio_filename
         # We assume the dataset is sorted by audio_filename!
         
+        print("Creating iterator from HF dataset...")
         iterator = iter(self.hf_dataset)
+        print("Grouping by audio_filename...")
         grouped_iterator = itertools.groupby(iterator, key=lambda x: x['audio_filename'])
         
         if self.max_samples is not None:
+            print(f"Limiting to {self.max_samples} samples...")
             grouped_iterator = itertools.islice(grouped_iterator, self.max_samples)
         
+        print("Starting loop over groups...")
         for filename, group in grouped_iterator:
+            print(f"Processing group: {filename}")
             rows = list(group)
             if not rows:
                 continue
@@ -247,7 +253,8 @@ class StreamingPaSSTDataset(IterableDataset):
                 headers["Authorization"] = f"Bearer {self.token}"
                 
             try:
-                response = requests.get(url, headers=headers)
+                print(f"Downloading {audio_rel_path}...")
+                response = requests.get(url, headers=headers, timeout=30)
                 # Check for 404 or other errors
                 if response.status_code == 404:
                     print(f"Warning: File not found (404): {audio_rel_path}. Skipping.")
