@@ -6,13 +6,13 @@ from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import f1_score
 
-def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
+def train_one_epoch(model, loader, criterion, optimizer, device, epoch, log_interval=100):
     model.train()
     running_loss = 0.0
     pbar = tqdm(loader, desc=f"Epoch {epoch} [Train]")
     
     num_batches = 0
-    for wavs, labels, _ in pbar:
+    for i, (wavs, labels, _) in enumerate(pbar):
         num_batches += 1
         wavs = wavs.to(device)
         labels = labels.to(device)
@@ -39,6 +39,9 @@ def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
         
         running_loss += loss.item()
         pbar.set_postfix(loss=loss.item())
+        
+        if (i + 1) % log_interval == 0:
+            print(f"Epoch {epoch} [{i+1}/{len(loader) if hasattr(loader, '__len__') else '?'}] Loss: {loss.item():.4f}")
         
     return running_loss / num_batches if num_batches > 0 else 0.0
 
@@ -81,7 +84,7 @@ def validate(model, loader, criterion, device, epoch):
     
     return running_loss / num_batches if num_batches > 0 else 0.0, f1
 
-def train(model, train_loader, val_loader, epochs, lr, device, save_dir):
+def train(model, train_loader, val_loader, epochs, lr, device, save_dir, log_interval=100):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.AdamW(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
@@ -89,7 +92,7 @@ def train(model, train_loader, val_loader, epochs, lr, device, save_dir):
     best_val_loss = float('inf')
     
     for epoch in range(1, epochs + 1):
-        train_loss = train_one_epoch(model, train_loader, criterion, optimizer, device, epoch)
+        train_loss = train_one_epoch(model, train_loader, criterion, optimizer, device, epoch, log_interval)
         val_loss, val_f1 = validate(model, val_loader, criterion, device, epoch)
         
         scheduler.step()

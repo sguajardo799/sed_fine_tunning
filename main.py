@@ -29,6 +29,7 @@ def main():
     parser.set_defaults(pretrained=True)
     
     parser.add_argument("--limit", type=int, default=None, help="Limit number of samples for streaming dataset")
+    parser.add_argument("--log_interval", type=int, default=100, help="Log interval for training steps")
     
     args = parser.parse_args()
     
@@ -173,7 +174,7 @@ def main():
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
     
-    train(model, train_loader, val_loader, args.epochs, args.lr, device, results_dir)
+    train(model, train_loader, val_loader, args.epochs, args.lr, device, results_dir, log_interval=args.log_interval)
 
 if __name__ == "__main__":
     main()
