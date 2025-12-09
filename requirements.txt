@@ -1,7 +1,6 @@
 hear21passt
 pandas
 pytorch-lightning
-torchaudio
 sed_eval
 scikit-learn
 soundfile
