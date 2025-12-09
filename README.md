@@ -43,6 +43,7 @@ python main.py --data_dir data --csv_train data/global_train_hartf.csv --csv_val
 - `--epochs`: Number of training epochs.
 - `--batch_size`: Batch size.
 - `--lr`: Learning rate.
+- `--device`: Device to use (e.g., `cuda:0`, `cpu`).
 - `--test`: Run a quick test with limited data.
 
 ## Evaluation

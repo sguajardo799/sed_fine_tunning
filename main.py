@@ -21,10 +21,14 @@ def main():
     
     parser.add_argument("--streaming", action="store_true", help="Use streaming mode")
     parser.add_argument("--token", type=str, help="Hugging Face Token")
+    parser.add_argument("--device", type=str, default=None, help="Device to use (e.g., 'cuda:0', 'cpu')")
     
     args = parser.parse_args()
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if args.device:
+        device = torch.device(args.device)
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
     # Initialize model to get time resolution
