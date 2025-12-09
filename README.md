@@ -84,3 +84,29 @@ To run the project using Docker:
     ```
 
 **Note:** Ensure your data is in the `data/` directory relative to where you run the command.
+
+## Hugging Face Dataset Integration
+
+### Uploading Dataset
+
+To upload your local dataset to the Hugging Face Hub:
+
+```bash
+python upload_ds.py --repo_id <username>/<dataset_name> --token <your_hf_token>
+```
+
+**Arguments:**
+- `--repo_id`: The ID of the repository to push to (e.g., `user/sed-dataset`).
+- `--token`: Your Hugging Face authentication token (optional if already logged in).
+- `--data_dir`, `--csv_train`, `--csv_val`: Paths to your local data (defaults to `data/` and standard CSV names).
+
+### Training from Hub
+
+To train directly using a dataset from the Hugging Face Hub:
+
+```bash
+python main.py --hf_dataset <username>/<dataset_name>
+```
+
+This will stream the data directly from the Hub, eliminating the need for local data storage during training.
+

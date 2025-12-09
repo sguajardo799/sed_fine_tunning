@@ -6,3 +6,5 @@ sed_eval
 scikit-learn
 soundfile
 librosa
+datasets
+huggingface_hub

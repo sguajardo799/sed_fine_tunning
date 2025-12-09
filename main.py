@@ -5,12 +5,14 @@ from src.dataset import PaSSTDataset
 from src.model import FineTunePaSST
 from src.train import train
 from torch.utils.data import DataLoader
+from datasets import load_dataset
 
 def main():
     parser = argparse.ArgumentParser(description="Fine-tune PaSST for SED")
     parser.add_argument("--data_dir", type=str, default="data", help="Path to data directory")
     parser.add_argument("--csv_train", type=str, default="data/global_train_hartf.csv", help="Path to train CSV")
     parser.add_argument("--csv_val", type=str, default="data/global_val_hartf.csv", help="Path to val CSV")
+    parser.add_argument("--hf_dataset", type=str, help="Hugging Face Dataset ID (e.g. user/dataset)")
     parser.add_argument("--channel", type=str, default="front", choices=["front", "rear"], help="Channel to use")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size")
     parser.add_argument("--epochs", type=int, default=10, help="Number of epochs")
@@ -29,8 +31,17 @@ def main():
     print(f"Estimated time resolution: {time_res}s")
     
     # Datasets
-    train_dataset = PaSSTDataset(args.csv_train, args.data_dir, channel=args.channel, time_resolution=time_res)
-    val_dataset = PaSSTDataset(args.csv_val, args.data_dir, channel=args.channel, time_resolution=time_res)
+    # Datasets
+    if args.hf_dataset:
+        print(f"Loading dataset from Hugging Face: {args.hf_dataset}")
+        # Load dataset
+        # Assuming the dataset has 'train' and 'validation' splits
+        hf_ds = load_dataset(args.hf_dataset)
+        train_dataset = PaSSTDataset(hf_dataset=hf_ds['train'], channel=args.channel, time_resolution=time_res)
+        val_dataset = PaSSTDataset(hf_dataset=hf_ds['validation'], channel=args.channel, time_resolution=time_res)
+    else:
+        train_dataset = PaSSTDataset(args.csv_train, args.data_dir, channel=args.channel, time_resolution=time_res)
+        val_dataset = PaSSTDataset(args.csv_val, args.data_dir, channel=args.channel, time_resolution=time_res)
     
     print(f"Train samples: {len(train_dataset)}")
     print(f"Val samples: {len(val_dataset)}")
