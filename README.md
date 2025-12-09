@@ -62,3 +62,25 @@ python evaluate.py --model_path results/best_model.pth --csv_val data/global_val
 
 Training results (checkpoints) are saved in the `results/` directory.
 Evaluation metrics (Segment-based and Event-based F1 scores) are printed to the console.
+
+## Docker
+
+To run the project using Docker:
+
+1.  **Build the image**:
+    ```bash
+    docker build -t sed-passt .
+    ```
+
+2.  **Run training**:
+    Mount the current directory to `/workspace` to access data and save results.
+    ```bash
+    docker run --gpus all -v $(pwd):/workspace sed-passt python main.py --epochs 10
+    ```
+
+3.  **Run evaluation**:
+    ```bash
+    docker run --gpus all -v $(pwd):/workspace sed-passt python evaluate.py --model_path results/best_model.pth
+    ```
+
+**Note:** Ensure your data is in the `data/` directory relative to where you run the command.
