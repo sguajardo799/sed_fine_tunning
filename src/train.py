@@ -11,7 +11,9 @@ def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
     running_loss = 0.0
     pbar = tqdm(loader, desc=f"Epoch {epoch} [Train]")
     
+    num_batches = 0
     for wavs, labels, _ in pbar:
+        num_batches += 1
         wavs = wavs.to(device)
         labels = labels.to(device)
         
@@ -38,17 +40,19 @@ def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
         running_loss += loss.item()
         pbar.set_postfix(loss=loss.item())
         
-    return running_loss / len(loader)
+    return running_loss / num_batches if num_batches > 0 else 0.0
 
 def validate(model, loader, criterion, device, epoch):
     model.eval()
     running_loss = 0.0
     all_preds = []
     all_targets = []
+    num_batches = 0
     
     with torch.no_grad():
         pbar = tqdm(loader, desc=f"Epoch {epoch} [Val]")
         for wavs, labels, _ in pbar:
+            num_batches += 1
             wavs = wavs.to(device)
             labels = labels.to(device)
             
@@ -68,12 +72,14 @@ def validate(model, loader, criterion, device, epoch):
             all_preds.append(preds.cpu().numpy().reshape(-1))
             all_targets.append(labels.cpu().numpy().reshape(-1))
             
-    all_preds = np.concatenate(all_preds)
-    all_targets = np.concatenate(all_targets)
+    if len(all_preds) > 0:
+        all_preds = np.concatenate(all_preds)
+        all_targets = np.concatenate(all_targets)
+        f1 = f1_score(all_targets, all_preds, average='macro')
+    else:
+        f1 = 0.0
     
-    f1 = f1_score(all_targets, all_preds, average='macro')
-    
-    return running_loss / len(loader), f1
+    return running_loss / num_batches if num_batches > 0 else 0.0, f1
 
 def train(model, train_loader, val_loader, epochs, lr, device, save_dir):
     criterion = nn.BCEWithLogitsLoss()

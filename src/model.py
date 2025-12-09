@@ -6,7 +6,17 @@ class FineTunePaSST(nn.Module):
     def __init__(self, num_classes=7, pretrained=True, freeze_encoder=False):
         super().__init__()
         # Load pre-trained PaSST using the wrapper to handle MelSpectrogram
+        # get_basic_model(mode="logits") loads weights by default.
         self.passt = get_basic_model(mode="logits")
+        
+        if not pretrained:
+            # Reset parameters if not using pretrained weights
+            # This is a bit hacky but ensures we start fresh if requested
+            def init_weights(m):
+                if isinstance(m, (nn.Linear, nn.Conv2d, nn.LayerNorm)):
+                    if hasattr(m, 'reset_parameters'):
+                        m.reset_parameters()
+            self.passt.apply(init_weights)
         
         # We need the sequence output, but PaSST pools it.
         # We will use a forward hook to capture the output of the normalization layer (before pooling).

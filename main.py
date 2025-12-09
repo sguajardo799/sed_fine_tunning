@@ -22,6 +22,11 @@ def main():
     parser.add_argument("--streaming", action="store_true", help="Use streaming mode")
     parser.add_argument("--token", type=str, help="Hugging Face Token")
     parser.add_argument("--device", type=str, default=None, help="Device to use (e.g., 'cuda:0', 'cpu')")
+    parser.add_argument("--model", type=str, default="passt", choices=["passt", "crnn"], help="Model to use")
+    
+    # Pretrained option (default True)
+    parser.add_argument("--no_pretrained", action="store_false", dest="pretrained", help="Do not use pre-trained weights")
+    parser.set_defaults(pretrained=True)
     
     args = parser.parse_args()
     
@@ -33,7 +38,12 @@ def main():
     
     # Initialize model to get time resolution
     # We need to instantiate it to check resolution or use the estimated one
-    model = FineTunePaSST(num_classes=7) # Num classes will be updated or checked
+    if args.model == "passt":
+        model = FineTunePaSST(num_classes=7, pretrained=args.pretrained) # Num classes will be updated or checked
+    elif args.model == "crnn":
+        from src.crnn import CRNN
+        model = CRNN(num_classes=7, pretrained=args.pretrained)
+        
     time_res = model.get_time_resolution()
     print(f"Estimated time resolution: {time_res}s")
     
@@ -71,7 +81,11 @@ def main():
             # But we need to make sure model matches.
             if len(train_dataset.classes) != model.num_classes:
                 print(f"Updating model num_classes to {len(train_dataset.classes)}")
-                model = FineTunePaSST(num_classes=len(train_dataset.classes))
+                if args.model == "passt":
+                    model = FineTunePaSST(num_classes=len(train_dataset.classes), pretrained=args.pretrained)
+                elif args.model == "crnn":
+                    from src.crnn import CRNN
+                    model = CRNN(num_classes=len(train_dataset.classes), pretrained=args.pretrained)
                 
             model = model.to(device)
             
@@ -92,7 +106,11 @@ def main():
             # Update model num_classes if different
             if len(train_dataset.classes) != model.num_classes:
                 print(f"Updating model num_classes to {len(train_dataset.classes)}")
-                model = FineTunePaSST(num_classes=len(train_dataset.classes))
+                if args.model == "passt":
+                    model = FineTunePaSST(num_classes=len(train_dataset.classes), pretrained=args.pretrained)
+                elif args.model == "crnn":
+                    from src.crnn import CRNN
+                    model = CRNN(num_classes=len(train_dataset.classes), pretrained=args.pretrained)
                 
             model = model.to(device)
             
@@ -109,7 +127,11 @@ def main():
         # Update model num_classes if different
         if len(train_dataset.classes) != model.num_classes:
             print(f"Updating model num_classes to {len(train_dataset.classes)}")
-            model = FineTunePaSST(num_classes=len(train_dataset.classes))
+            if args.model == "passt":
+                model = FineTunePaSST(num_classes=len(train_dataset.classes), pretrained=args.pretrained)
+            elif args.model == "crnn":
+                from src.crnn import CRNN
+                model = CRNN(num_classes=len(train_dataset.classes), pretrained=args.pretrained)
             
         model = model.to(device)
         
