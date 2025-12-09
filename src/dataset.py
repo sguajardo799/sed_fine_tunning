@@ -230,7 +230,6 @@ class StreamingPaSSTDataset(IterableDataset):
         
         print("Starting loop over groups...")
         for filename, group in grouped_iterator:
-            print(f"Processing group: {filename}")
             rows = list(group)
             if not rows:
                 continue
@@ -253,7 +252,6 @@ class StreamingPaSSTDataset(IterableDataset):
                 headers["Authorization"] = f"Bearer {self.token}"
                 
             try:
-                print(f"Downloading {audio_rel_path}...")
                 response = requests.get(url, headers=headers, timeout=30)
                 # Check for 404 or other errors
                 if response.status_code == 404:
