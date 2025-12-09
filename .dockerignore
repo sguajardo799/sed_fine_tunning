@@ -1,5 +1,12 @@
-data/
-results/
-.git/
-__pycache__/
-*.pyc
+# Ignore everything
+*
+
+# Allow necessary files/directories
+!src/
+!main.py
+!evaluate.py
+!requirements.txt
+!test_stream.py
+!README.md
+!Dockerfile
+!.dockerignore

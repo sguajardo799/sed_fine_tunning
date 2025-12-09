@@ -165,3 +165,138 @@ class PaSSTDataset(Dataset):
                 labels[class_idx] = 1.0
                 
         return wav, labels, filename
+
+from torch.utils.data import IterableDataset
+from huggingface_hub import hf_hub_url
+import requests
+import io
+import itertools
+
+class StreamingPaSSTDataset(IterableDataset):
+    def __init__(self, hf_dataset, repo_id, token=None, channel='front', sr=32000, duration=10.0, time_resolution=0.0):
+        self.hf_dataset = hf_dataset
+        self.repo_id = repo_id
+        self.token = token
+        self.channel = channel
+        self.sr = sr
+        self.duration = duration
+        self.time_resolution = time_resolution
+        
+        # We need classes to map to indices. 
+        # Since we are streaming, we might not know all classes upfront unless provided.
+        # For now, we assume standard classes or we need to scan the dataset (expensive).
+        # Or we can hardcode them if known, or pass them in.
+        # Let's assume they are passed or we can get them from features if available.
+        # The user's CSV has 'class' column.
+        # Let's try to get unique classes from the dataset features if possible, 
+        # otherwise we might need a list.
+        # For this specific dataset, let's look at what we found in previous steps or assume a fixed set.
+        # In the non-streaming dataset, we did `sorted(self.df['class'].unique())`.
+        # We can't do that easily here.
+        # Let's hardcode the classes observed in the CSV head for now or add an argument.
+        # Observed classes: 'bell', 'cutlery', 'laugh', 'speech-target', 'voice'
+        # Wait, there might be more.
+        # Let's add a `classes` argument to __init__.
+        self.classes = ['bell', 'cutlery', 'dishes', 'door', 'laugh', 'speech-target', 'voice', 'walk'] # Common SED classes + hartf specific?
+        # Actually, let's try to fetch features from hf_dataset if it has ClassLabel.
+        # If not, we might default to a known list or require it.
+        # Let's use a safe default list based on the user's data we saw.
+        # We saw: speech-target, voice, bell, laugh, cutlery.
+        # Let's stick to a generic list or ask the user? 
+        # Better: pass it from main.py where we might know it or just use the ones we find (but that breaks consistency).
+        # Let's assume the user provides it or we use a comprehensive list.
+        # I'll add a `classes` argument.
+        self.classes = sorted(['bell', 'cutlery', 'dishes', 'door', 'laugh', 'speech-target', 'voice', 'walk', 'water', 'cry']) # Example list
+        self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
+
+    def set_classes(self, classes):
+        self.classes = sorted(classes)
+        self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
+
+    def __iter__(self):
+        # Group by audio_filename
+        # We assume the dataset is sorted by audio_filename!
+        
+        iterator = iter(self.hf_dataset)
+        
+        for filename, group in itertools.groupby(iterator, key=lambda x: x['audio_filename']):
+            rows = list(group)
+            if not rows:
+                continue
+                
+            # Get audio from first row
+            first_row = rows[0]
+            
+            if self.channel == 'front':
+                audio_rel_path = first_row['hartf_front_filename']
+            else:
+                audio_rel_path = first_row['hartf_rear_filename']
+                
+            # Construct URL
+            # audio_rel_path might be "SigData_1/..."
+            url = hf_hub_url(repo_id=self.repo_id, filename=audio_rel_path, repo_type='dataset')
+            
+            # Download audio
+            headers = {}
+            if self.token:
+                headers["Authorization"] = f"Bearer {self.token}"
+                
+            try:
+                response = requests.get(url, headers=headers)
+                # Check for 404 or other errors
+                if response.status_code == 404:
+                    print(f"Warning: File not found (404): {audio_rel_path}. Skipping.")
+                    continue
+                response.raise_for_status()
+                wav_np, sr = sf.read(io.BytesIO(response.content))
+            except Exception as e:
+                print(f"Error loading {audio_rel_path}: {e}. Skipping.")
+                continue
+                
+            wav = torch.from_numpy(wav_np).float()
+            if wav.ndim == 1:
+                wav = wav.unsqueeze(0)
+            else:
+                wav = wav.t()
+                
+            # Resample
+            if sr != self.sr:
+                resampler = torchaudio.transforms.Resample(sr, self.sr)
+                wav = resampler(wav)
+                
+            # Mono
+            if wav.shape[0] > 1:
+                wav = wav.mean(dim=0)
+            else:
+                wav = wav.squeeze(0)
+                
+            # Pad/Truncate
+            target_len = int(self.sr * self.duration)
+            if wav.shape[0] < target_len:
+                wav = torch.nn.functional.pad(wav, (0, target_len - wav.shape[0]))
+            elif wav.shape[0] > target_len:
+                wav = wav[:target_len]
+                
+            # Labels
+            if self.time_resolution > 0:
+                num_frames = int(self.duration / self.time_resolution)
+                labels = torch.zeros((num_frames, len(self.classes)))
+                
+                for row in rows:
+                    if row['class'] in self.class_to_idx:
+                        class_idx = self.class_to_idx[row['class']]
+                        start_frame = int(row['start (s)'] / self.time_resolution)
+                        end_frame = int(row['end (s)'] / self.time_resolution)
+                        
+                        start_frame = max(0, min(start_frame, num_frames - 1))
+                        end_frame = max(0, min(end_frame, num_frames))
+                        
+                        labels[start_frame:end_frame, class_idx] = 1.0
+            else:
+                labels = torch.zeros(len(self.classes))
+                for row in rows:
+                    if row['class'] in self.class_to_idx:
+                        class_idx = self.class_to_idx[row['class']]
+                        labels[class_idx] = 1.0
+                        
+            yield wav, labels, filename

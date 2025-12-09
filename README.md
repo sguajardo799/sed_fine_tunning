@@ -105,8 +105,13 @@ python upload_ds.py --repo_id <username>/<dataset_name> --token <your_hf_token>
 To train directly using a dataset from the Hugging Face Hub:
 
 ```bash
-python main.py --hf_dataset <username>/<dataset_name>
+python main.py --hf_dataset <username>/<dataset_name> --streaming --token <your_hf_token>
 ```
 
 This will stream the data directly from the Hub, eliminating the need for local data storage during training.
+
+**Arguments:**
+- `--hf_dataset`: Hugging Face Dataset ID.
+- `--streaming`: Enable streaming mode (required for large datasets to avoid download).
+- `--token`: Hugging Face token (required for private datasets or higher rate limits).
 
