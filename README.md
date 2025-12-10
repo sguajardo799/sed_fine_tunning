@@ -81,9 +81,25 @@ To run the project using Docker:
     docker run --gpus all -v $(pwd):/workspace sed-passt python main.py --epochs 10
     ```
 
-3.  **Run evaluation**:
+3.  **Run training with Hugging Face Dataset (Streaming)**:
     ```bash
-    docker run --gpus all -v $(pwd):/workspace sed-passt python evaluate.py --model_path results/best_model.pth
+    docker run -d --gpus all -v $(pwd):/workspace sed-passt \
+        python main.py \
+        --hf_dataset <username>/<dataset_name> \
+        --model crnn \
+        --epochs 20 \
+        --batch_size 256 \
+        --device cuda:0 \
+        --streaming \
+        --token <your_hf_token> \
+        --limit 1000 \
+        --log_interval 10
+    ```
+    *Note: Results will be saved in a timestamped subdirectory within `results/` on your host machine.*
+
+4.  **Run evaluation**:
+    ```bash
+    docker run --gpus all -v $(pwd):/workspace sed-passt python evaluate.py --model_path results/<timestamp>/best_model.pth
     ```
 
 **Note:** Ensure your data is in the `data/` directory relative to where you run the command.

@@ -171,8 +171,11 @@ def main():
         val_loader = DataLoader(val_dataset, batch_size=2, shuffle=False)
         
     # Train
-    results_dir = Path("results")
-    results_dir.mkdir(exist_ok=True)
+    import datetime
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_dir = Path("results") / timestamp
+    results_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Results will be saved to: {results_dir.resolve()}")
     
     train(model, train_loader, val_loader, args.epochs, args.lr, device, results_dir, log_interval=args.log_interval)
 
